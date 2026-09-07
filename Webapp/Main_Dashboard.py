@@ -7,108 +7,193 @@ from PySide6.QtWidgets import (
     QHBoxLayout
 )
 
+from PySide6.QtCore import QEventLoop, QTimer
+
+# User-made files
 from Webapp_Buttons import WebappButton
 from Webapp_Labels import WebappLabel
+from Webapp_Video import WebappVideo
+from Login import LoginWindow
 
 
-# Create the application
+# =================================================
+# APPLICATION
+# =================================================
+
 app = QApplication(sys.argv)
 
 
-# Create the main window
+# =================================================
+# LOGIN
+# =================================================
+
+login = LoginWindow()
+
+login.window.show()
+
+
+# =================================================
+# WAIT FOR LOGIN
+# =================================================
+
+login_loop = QEventLoop()
+
+
+def check_login():
+    # Login was successful
+    if login.login_successful:
+
+        print("Login successful!")
+        print("Starting dashboard...")
+
+        login_timer.stop()
+        login_loop.quit()
+
+    # User closed the login window without logging in
+    elif not login.window.isVisible():
+
+        print("Login window closed.")
+
+        login_timer.stop()
+        login_loop.quit()
+
+
+# Check the login status every 100 milliseconds
+login_timer = QTimer()
+
+login_timer.timeout.connect(check_login)
+
+login_timer.start(100)
+
+
+# Run the login event loop
+login_loop.exec()
+
+
+# =================================================
+# CHECK RESULT
+# =================================================
+
+if not login.login_successful:
+
+    print("Login failed or login window was closed.")
+    sys.exit()
+
+
+# =================================================
+# DASHBOARD
+# =================================================
+
 window = QWidget()
+
 window.setWindowTitle("My Webapp Dashboard")
 window.resize(600, 400)
 
+window.setStyleSheet("""
+    QWidget {
+        background-color: lightblue;
+    }
+""")
 
-# Main vertical layout
+
+# =================================================
+# MAIN LAYOUT
+# =================================================
+
 main_layout = QVBoxLayout()
 
 
-# -------------------------
-# Welcome section
-# -------------------------
+# =================================================
+# WELCOME SECTION
+# =================================================
 
-welcome_label = WebappLabel("Welcome to the Dashboard!")
+welcome_label = WebappLabel(
+    "Welcome to the Dashboard!"
+)
 
 main_layout.addWidget(welcome_label.label)
 
 
-# -------------------------
-# Button 1
-# -------------------------
+# =================================================
+# VIDEO SECTION
+# =================================================
 
-button1_layout = QHBoxLayout()
+video = WebappVideo()
 
-button1_label = WebappLabel("Click this to display a message.")
-button1 = WebappButton("Say Hello")
-
-button1_layout.addWidget(button1_label.label)
-button1_layout.addWidget(button1.button)
-
-main_layout.addLayout(button1_layout)
+main_layout.addWidget(video.video_widget)
 
 
-# -------------------------
-# Button 2
-# -------------------------
+# =================================================
+# SAY HELLO SECTION
+# =================================================
 
-button2_layout = QHBoxLayout()
+hello_layout = QHBoxLayout()
 
-button2_label = WebappLabel("Click this to change the welcome message.")
-button2 = WebappButton("Change Title")
+hello_label = WebappLabel(
+    "Click the button to display a friendly message."
+)
 
-button2_layout.addWidget(button2_label.label)
-button2_layout.addWidget(button2.button)
+hello_button = WebappButton("Say Hello")
 
-main_layout.addLayout(button2_layout)
+hello_layout.addWidget(hello_label.label)
+hello_layout.addWidget(hello_button.button)
 
-
-# -------------------------
-# Button 3
-# -------------------------
-
-button3_layout = QHBoxLayout()
-
-button3_label = WebappLabel("Click this to close the application.")
-button3 = WebappButton("Exit")
-
-button3_layout.addWidget(button3_label.label)
-button3_layout.addWidget(button3.button)
-
-main_layout.addLayout(button3_layout)
+main_layout.addLayout(hello_layout)
 
 
-# -------------------------
-# Button functions
-# -------------------------
+# =================================================
+# EXIT SECTION
+# =================================================
+
+exit_layout = QHBoxLayout()
+
+exit_label = WebappLabel(
+    "Click the button to close the application."
+)
+
+exit_button = WebappButton("Exit")
+
+exit_layout.addWidget(exit_label.label)
+exit_layout.addWidget(exit_button.button)
+
+main_layout.addLayout(exit_layout)
+
+
+# =================================================
+# BUTTON FUNCTIONS
+# =================================================
 
 def say_hello():
-    welcome_label.label.setText("Hello! 👋")
-
-
-def change_title():
-    welcome_label.label.setText("You changed the dashboard!")
+    welcome_label.label.setText(
+        "Hello! 👋 hope you're fine"
+    )
 
 
 def exit_application():
     app.quit()
 
 
-# Connect buttons to functions
-
-button1.button.clicked.connect(say_hello)
-button2.button.clicked.connect(change_title)
-button3.button.clicked.connect(exit_application)
+# Connect buttons
+hello_button.button.clicked.connect(say_hello)
+exit_button.button.clicked.connect(exit_application)
 
 
-# Give the window its layout
+# =================================================
+# SET DASHBOARD LAYOUT
+# =================================================
+
 window.setLayout(main_layout)
 
 
-# Show the window
+# =================================================
+# SHOW DASHBOARD
+# =================================================
+
 window.show()
 
 
-# Start the application
+# =================================================
+# START MAIN APPLICATION
+# =================================================
+
 sys.exit(app.exec())

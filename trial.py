@@ -1,86 +1,194 @@
-import cv2
-import socket
-import struct
-import pickle
-
-# -------------------------
-# SETTINGS
-# -------------------------
-
-SERVER_IP = "192.168.1.35"
-PORT = 9999
-
-# -------------------------
-# CAMERA
-# -------------------------
-
-camera = cv2.VideoCapture(0)
-
-# -------------------------
-# CONNECT TO LAPTOP B
-# -------------------------
-
-client_socket = socket.socket(
-    socket.AF_INET,
-    socket.SOCK_STREAM
+import sys
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QLabel, QPushButton,
+    QVBoxLayout, QHBoxLayout, QGridLayout,
+    QProgressBar, QFrame
 )
+from PySide6.QtCore import Qt
 
-print("Connecting to ScoutBot AI...")
 
-client_socket.connect(
-    (SERVER_IP, PORT)
-)
+class ScoutBotDashboard(QWidget):
+    def __init__(self):
+        super().__init__()
 
-print("Connected!")
-print("Sending camera footage...")
+        self.setWindowTitle("ScoutBot Dashboard")
+        self.setMinimumSize(1000, 650)
 
-# -------------------------
-# SEND FRAMES
-# -------------------------
+        self.create_ui()
 
-while True:
+    def create_ui(self):
 
-    ret, frame = camera.read()
+        # =========================
+        # HEADER
+        # =========================
 
-    if not ret:
+        title = QLabel("🤖 SCOUTBOT")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            padding: 15px;
+        """)
 
-        print("Could not access camera.")
+        status = QLabel("● CONNECTED")
+        status.setAlignment(Qt.AlignCenter)
+        status.setStyleSheet("""
+            font-size: 16px;
+            font-weight: bold;
+        """)
 
-        break
+        # =========================
+        # CAMERA FEED
+        # =========================
 
-    # Resize frame
-    frame = cv2.resize(
-        frame,
-        (480, 360)
-    )
+        camera = QLabel("📹\n\nLIVE CAMERA FEED")
+        camera.setAlignment(Qt.AlignCenter)
+        camera.setMinimumSize(550, 350)
 
-    # Compress frame
-    encoded_frame = cv2.imencode(
-        ".jpg",
-        frame,
-        [cv2.IMWRITE_JPEG_QUALITY, 50]
-    )[1]
+        camera.setStyleSheet("""
+            border: 2px solid gray;
+            border-radius: 10px;
+            font-size: 22px;
+        """)
 
-    # Convert to bytes
-    data = pickle.dumps(
-        encoded_frame
-    )
+        # =========================
+        # MOVEMENT CONTROLS
+        # =========================
 
-    # Send size + frame
-    message = struct.pack(
-        "Q",
-        len(data)
-    ) + data
+        control_title = QLabel("🎮 MOVEMENT CONTROL")
+        control_title.setAlignment(Qt.AlignCenter)
+        control_title.setStyleSheet("""
+            font-size: 18px;
+            font-weight: bold;
+        """)
 
-    client_socket.sendall(message)
+        forward = QPushButton("↑\nForward")
+        left = QPushButton("←\nLeft")
+        stop = QPushButton("⏹\nSTOP")
+        right = QPushButton("→\nRight")
+        backward = QPushButton("↓\nBackward")
 
-    
-  
+        buttons = [forward, left, stop, right, backward]
 
-camera.release()
+        for button in buttons:
+            button.setMinimumSize(100, 60)
+            button.setStyleSheet("""
+                QPushButton {
+                    font-size: 15px;
+                    font-weight: bold;
+                    border: 1px solid gray;
+                    border-radius: 8px;
+                    padding: 8px;
+                }
 
-client_socket.close()
+                QPushButton:hover {
+                    background-color: lightgray;
+                }
+            """)
 
-cv2.destroyAllWindows()
+        # Button positions
+        controls = QGridLayout()
 
-print("Camera stopped.")
+        controls.addWidget(forward, 0, 1)
+        controls.addWidget(left, 1, 0)
+        controls.addWidget(stop, 1, 1)
+        controls.addWidget(right, 1, 2)
+        controls.addWidget(backward, 2, 1)
+
+        # =========================
+        # SENSOR PANEL
+        # =========================
+
+        sensor_title = QLabel("📊 SENSOR DATA")
+        sensor_title.setStyleSheet("""
+            font-size: 18px;
+            font-weight: bold;
+        """)
+
+        distance = QLabel("Distance: 120 cm")
+        temperature = QLabel("Temperature: 28 °C")
+        obstacle = QLabel("Obstacle: None")
+
+        for label in [distance, temperature, obstacle]:
+            label.setStyleSheet("""
+                font-size: 15px;
+                padding: 8px;
+            """)
+
+        # =========================
+        # BATTERY
+        # =========================
+
+        battery_title = QLabel("🔋 Battery")
+
+        battery = QProgressBar()
+        battery.setValue(78)
+        battery.setFormat("78%")
+
+        # =========================
+        # ALERT
+        # =========================
+
+        alert = QLabel("🚨 Alert: No obstacles detected")
+        alert.setWordWrap(True)
+        alert.setStyleSheet("""
+            border: 1px solid gray;
+            border-radius: 6px;
+            padding: 10px;
+            font-weight: bold;
+        """)
+
+        # =========================
+        # RIGHT PANEL
+        # =========================
+
+        right_panel = QVBoxLayout()
+
+        right_panel.addWidget(control_title)
+        right_panel.addLayout(controls)
+
+        right_panel.addSpacing(15)
+
+        right_panel.addWidget(sensor_title)
+        right_panel.addWidget(distance)
+        right_panel.addWidget(temperature)
+        right_panel.addWidget(obstacle)
+
+        right_panel.addSpacing(15)
+
+        right_panel.addWidget(battery_title)
+        right_panel.addWidget(battery)
+
+        right_panel.addSpacing(15)
+
+        right_panel.addWidget(alert)
+
+        # =========================
+        # MAIN LAYOUT
+        # =========================
+
+        main_layout = QVBoxLayout()
+
+        main_layout.addWidget(title)
+        main_layout.addWidget(status)
+
+        content = QHBoxLayout()
+
+        content.addWidget(camera)
+        content.addLayout(right_panel)
+
+        main_layout.addLayout(content)
+
+        self.setLayout(main_layout)
+
+
+# =========================
+# RUN APPLICATION
+# =========================
+
+app = QApplication(sys.argv)
+
+window = ScoutBotDashboard()
+window.show()
+
+sys.exit(app.exec())
